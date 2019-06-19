@@ -1,0 +1,489 @@
+/*
+Vivid Electrical and Technology
+Author: Rahul Shrivastava
+Version: 2.0
+Date: 5 May 2019
+Description: This Arduino code will interface Arduino uno board with 
+             sim900mini board, 
+             connected at Arduino pin 1 (5VR of GSM) and Arduino pin 0 (5VT of GSM).
+Pin Connection
+Arduino
+0   -   5VT
+1   -   5VR
+12  -   Sensor
+13  -   Alarm
+rowPins[ROWS] = {5, 4, 3, 2}; //connect to the row pinouts of the keypad
+colPins[COLS] = {9, 8, 7, 6}; //connect to the column pinouts of the keypad
+
+rs = A5, en = A4, d4 = A3, d5 = A2, d6 = A1, d7 = A0;
+
+*/
+
+#include <Keypad.h>
+#include<EEPROM.h>
+
+//#include <SoftwareSerial.h>
+int sensor1 = 12;
+int sen1_val = 0;
+int alarm=13;
+boolean flag = true; 
+//SoftwareSerial SIM900A(11,10);
+ 
+char phone1[10];
+byte phone1_byte[10]; 
+byte phone1_byte_rom[10];
+char phone1_char_rom[10];
+
+char phone2[10];
+byte phone2_byte[10]; 
+byte phone2_byte_rom[10];
+char phone2_char_rom[10];
+
+char phone3[10];
+byte phone3_byte[10]; 
+byte phone3_byte_rom[10];
+char phone3_char_rom[10];
+
+const byte ROWS = 4; //four rows
+const byte COLS = 4; //three columns
+char keys[ROWS][COLS] = {
+  {'1','4','7','*'},
+  {'2','5','8','0'},
+  {'3','6','9','#'},
+  {'A','B','C','D'}
+};
+byte rowPins[ROWS] = {5, 4, 3, 2}; //connect to the row pinouts of the keypad
+byte colPins[COLS] = {9, 8, 7, 6}; //connect to the column pinouts of the keypad
+
+Keypad keypad = Keypad( makeKeymap(keys), rowPins, colPins, ROWS, COLS );
+
+// include the library code:
+#include <LiquidCrystal.h>
+
+// initialize the library by associating any needed LCD interface pin
+// with the arduino pin number it is connected to
+const int rs = A5, en = A4, d4 = A3, d5 = A2, d6 = A1, d7 = A0;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+char pwd[5];
+String phone_rom;
+String phone1_rom;
+String phone2_rom;
+String phone3_rom;
+
+//String phone1_sub_str;
+//String phone2_sub_str;
+//String phone3_sub_str;
+
+void setup(){
+   pinMode(sensor1, INPUT);
+   pinMode(alarm, OUTPUT);
+   digitalWrite(alarm,LOW);
+
+  Serial.begin(115200);
+   lcd.begin(16, 2);
+   lcd.print("Security System");
+   lcd.setCursor(2,1);
+   lcd.print("Starting---");
+   //SIM900A.begin(115200);   // Setting the baud rate of GSM Module  
+   romRead();
+   //Serial.println ("SIM900A Ready");
+   lcd.begin(16, 2);
+   lcd.print("Security System");
+   lcd.setCursor(2,1);
+   lcd.print("Starting---");
+   
+   delay(100);
+   delay(45000);
+   SendMessagesecured();
+   lcd.clear();
+   lcd.println("SYSTEM SECURED");
+   }
+
+void loop(){
+  char key = keypad.getKey();
+  if (key == '*')
+  {
+   delay(500); 
+   configure();
+  }
+    //Serial.println("SYSTEM SECURED");
+    
+    sen1_val = digitalRead(sensor1);
+    //Serial.println(sen1_val);
+    //Serial.flush();
+       
+    if ((sen1_val == 1))
+    {
+        digitalWrite(alarm,HIGH);
+      //  Serial.println("Theft Alert System Activated\n");
+        lcd.clear();
+        lcd.println("SAVDHAN!!");
+        for (int i=0;i<3;i++)
+        {
+        MakeCall1();
+        delay(1000);
+        //if (Serial.available()>0)
+        //Serial.write(SIM900A.read());
+        SendMessage1();
+        delay(1000);
+        //if (Serial.available()>0)
+        //Serial.write(SIM900A.read());
+        delay(60000);
+        
+        MakeCall2();
+        delay(1000);
+        //if (Serial.available()>0)
+        //Serial.write(SIM900A.read());
+        SendMessage2();
+        delay(1000);
+        //if (Serial.available()>0)
+        //Serial.write(SIM900A.read());
+        delay(60000);
+        
+        MakeCall3();
+        delay(1000);
+        //if (Serial.available()>0)
+        //Serial.write(SIM900A.read());
+        SendMessage3();
+        delay(1000);
+        //if (Serial.available()>0)
+        //Serial.write(SIM900A.read());
+        delay(60000);
+         }
+        digitalWrite(alarm,LOW);
+    }
+   //if (Serial.available()>0);
+     //Serial.write(SIM900A.read());
+}
+
+void SendMessagesecured()
+{
+  String phone1_str = phone1_char_rom;
+  String phone1_sub_str = phone1_str.substring(0,10);
+  String sms1 = "AT+CMGS=\"+91";
+         sms1 += phone1_sub_str;
+         sms1 += "\"\r";
+  //Serial.println(sms1);  
+  //Serial.println ("Sending Message");
+  Serial.println("AT+CMGF=1");    //Sets the GSM Module in Text Mode
+  delay(1000);
+  //Serial.println ("Set SMS Number");
+  Serial.println(sms1); //Mobile phone number to send message
+  delay(1000);
+  //Serial.println ("Set SMS Content");
+  Serial.println("(Your Security System has been activated), (Aapki Suraksha Pranali Prarambh ki Ja chuki Hai !)");// Messsage content
+  delay(100);
+  //Serial.println ("Finish");
+  Serial.println((char)26);// ASCII code of CTRL+Z
+  delay(1000);
+  //Serial.println ("Message has been sent");
+}
+
+ void SendMessage1()
+{
+  String phone1_str = phone1_char_rom;
+  String phone1_sub_str = phone1_str.substring(0,10);
+  String sms1 = "AT+CMGS=\"+91";
+         sms1 += phone1_sub_str;
+         sms1 += "\"\r";
+  //Serial.println(sms1);
+  //Serial.println ("Sending Message");
+  Serial.println("AT+CMGF=1");    //Sets the GSM Module in Text Mode
+  delay(1000);
+  //Serial.println ("Set SMS Number");
+  Serial.println(sms1); //Mobile phone number to send message
+  delay(1000);
+  //Serial.println ("Set SMS Content");
+  Serial.println("(Theft Alert!! Your property is unprotected, Savdhan!!) (Aapki Sampatti asurakshit hai!)");// Messsage content
+  delay(100);
+  //Serial.println ("Finish");
+  Serial.println((char)26);// ASCII code of CTRL+Z
+  delay(1000);
+  //Serial.println ("Message has been sent");
+}
+
+void SendMessage2()
+{
+    String phone2_str = phone2_char_rom;
+    String phone2_sub_str = phone2_str.substring(0,10);
+    String sms2 = "AT+CMGS=\"+91";
+           sms2 += phone2_sub_str;
+           sms2 += "\"\r";
+  //Serial.println(sms2);
+  //Serial.println ("Sending Message");
+  Serial.println("AT+CMGF=1");    //Sets the GSM Module in Text Mode
+  delay(1000);
+  //Serial.println ("Set SMS Number");
+  Serial.println(sms2); //Mobile phone number to send message
+  delay(1000);
+  //Serial.println ("Set SMS Content");
+  Serial.println("(Theft Alert!! Your property is unprotected, Savdhan!!) (Aapki Sampatti asurakshit hai!)");// Messsage content
+  delay(100);
+  //Serial.println ("Finish");
+  Serial.println((char)26);// ASCII code of CTRL+Z
+  delay(1000);
+  //Serial.println ("Message has been sent");
+}
+
+void SendMessage3()
+{
+      String phone3_str = phone3_char_rom;
+      String phone3_sub_str = phone3_str.substring(0,10);
+      String sms3 = "AT+CMGS=\"+91";
+           sms3 += phone3_sub_str;
+           sms3 += "\"\r";
+    //  Serial.println(sms3);
+    //  Serial.println ("Sending Message");
+      Serial.println("AT+CMGF=1");    //Sets the GSM Module in Text Mode
+      delay(1000);
+      //Serial.println ("Set SMS Number");
+      Serial.println(sms3); //Mobile phone number to send message
+      delay(1000);
+      //Serial.println ("Set SMS Content");
+      Serial.println("(Theft Alert!! Your property is unprotected, Savdhan!!) (Aapki Sampatti asurakshit hai!)");// Messsage content
+      delay(100);
+      //Serial.println ("Finish");
+      Serial.println((char)26);// ASCII code of CTRL+Z
+      delay(1000);
+      //Serial.println ("Message has been sent");
+}
+
+ void RecieveMessage()
+{
+  //Serial.println ("SIM900A Receiving SMS");
+  delay (1000);
+  Serial.println("AT+CNMI=2,2,0,0,0"); // AT Command to receive a live SMS
+  delay(1000);
+  //Serial.write ("Unread Message done");
+ }
+
+  void MakeCall1 ()
+ {
+  String phone1_str = phone1_char_rom;
+  String phone1_sub_str = phone1_str.substring(0,10);
+  String call1 = "ATD+91";
+         call1 += phone1_sub_str;
+         call1 += ";";  
+  //Serial.println(call1);
+  //Serial.println ("Making Call");
+  delay (1000);
+  Serial.println(call1); // AT Command to receive a live SMS
+  delay(1000);
+  //Serial.write ("Number Dialled");
+ }
+
+  void MakeCall2 ()
+ {
+  String phone2_str = phone2_char_rom;
+  String phone2_sub_str = phone2_str.substring(0,10);
+  String call2 = "ATD+91";
+         call2 += phone2_sub_str;
+         call2 += ";";  
+  //Serial.println(call2);
+  //Serial.println ("Making Call");
+  delay (1000);
+  Serial.println(call2); // AT Command to receive a live SMS
+  delay(1000);
+  //Serial.write ("Number Dialled");
+ }
+
+  void MakeCall3 ()
+ {
+    String phone3_str = phone3_char_rom;
+    String phone3_sub_str = phone3_str.substring(0,10);
+    String call3 = "ATD+91";
+         call3 += phone3_sub_str;
+         call3 += ";";  
+  //Serial.println(call3);
+  //Serial.println ("Making Call");
+  delay (1000);
+  Serial.println(call3); // AT Command to receive a live SMS
+  delay(1000);
+  //Serial.write ("Number Dialled");
+ }
+
+void configure()
+  {
+    //Serial.println("Configure");
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("Enter Password");
+    for(int i=0;i<5;i++)
+    {
+    pwd[i] = keypad.waitForKey();
+    lcd.setCursor(i,1);
+    lcd.write(pwd[i]);
+    delay(200);
+    }
+    delay(2000);
+    if( ( pwd[0] == 'A' ) && ( pwd[1] == '1' ) && ( pwd[2] == '2' )&& ( pwd[3] == 'C' )&& ( pwd[4] == 'D' ) )
+    {
+    lcd.clear();  
+    lcd.setCursor(0,0);
+    lcd.print("Correct Password");
+    delay(2000);
+    saveContacts();
+    }
+    else
+    {
+    lcd.clear();  
+    lcd.setCursor(0,0);
+    lcd.print("Incorrect Password");
+    }   
+  }
+
+void saveContacts ()
+{
+    //Serial.println("saveContacts");
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("Enter Contacts");
+    lcd.setCursor(0,1);
+    lcd.print("10 digits only");
+    delay(2000);
+    lcd.clear();  
+    lcd.setCursor(0,0);
+    lcd.print("Enter 1st Number");
+    for(int i=0;i<10;i++)
+    {
+    phone1[i] = keypad.waitForKey();
+    lcd.setCursor(i,1);
+    lcd.write(phone1[i]);
+    delay(200);
+    }
+    delay(2000);
+    lcd.clear();  
+    lcd.setCursor(0,0);
+    lcd.print("Enter 2nd Number");
+    for(int i=0;i<10;i++)
+    {
+    phone2[i] = keypad.waitForKey();
+    lcd.setCursor(i,1);
+    lcd.write(phone2[i]);
+    delay(200);
+    }
+    delay(2000);
+    lcd.clear();  
+    lcd.setCursor(0,0);
+    lcd.print("Enter 3rd Number");
+    for(int i=0;i<10;i++)
+    {
+    phone3[i] = keypad.waitForKey();
+    lcd.setCursor(i,1);
+    lcd.write(phone3[i]);
+    delay(200);
+    }
+    delay(2000);
+    /*lcd.clear();  
+    lcd.setCursor(0,0);
+    lcd.print("Enter 4th Number");
+    for(int i=0;i<10;i++)
+    {
+    phone4[i] = keypad.waitForKey();
+    lcd.setCursor(i,1);
+    lcd.write(phone4[i]);
+    delay(200);
+    }
+        delay(2000);
+    lcd.clear();  
+    lcd.setCursor(0,0);
+    lcd.print("Enter 5th Number");
+    for(int i=0;i<10;i++)
+    {
+    phone5[i] = keypad.waitForKey();
+    lcd.setCursor(i,1);
+    lcd.write(phone5[i]);
+    delay(200);
+    }*/
+    delay(2000);
+    lcd.clear();  
+    lcd.setCursor(0,0);
+    lcd.println("Contacts Saved");
+    /*String phone1_str = phone1;
+    String phone2_str = phone2;
+    String phone3_str = phone3;
+    String phone4_str = phone4;
+    String phone5_str = phone5;
+
+    phone1_sub_str = phone1_str.substring(0,10);
+    phone2_sub_str = phone2_str.substring(0,10);
+    phone3_sub_str = phone3_str.substring(0,10);
+    phone4_sub_str = phone4_str.substring(0,10);
+    phone5_sub_str = phone5_str.substring(0,10); 
+    Serial.println(phone1_sub_str);
+    Serial.println(phone2_sub_str);
+    Serial.println(phone3_sub_str);
+    Serial.println(phone4_sub_str);
+    Serial.println(phone5_sub_str);
+    */
+    romWrite();  
+}
+ void romWrite()
+{
+   //Serial.println("romWrite");
+   for(int i=0;i<10;i++)
+  {
+    phone1_byte[i]=byte(phone1[i]);
+    EEPROM.write(i,phone1_byte[i]);
+    delay(10);
+    phone1_byte_rom[i]=EEPROM.read(i);
+    delay(10);
+  } 
+    for(int i=0;i<10;i++)
+  {
+    phone2_byte[i]=byte(phone2[i]);
+    EEPROM.write(i+10,phone2_byte[i]);
+    delay(10);
+  }
+    for(int i=0;i<10;i++)
+  {
+    phone3_byte[i]=byte(phone3[i]);
+    EEPROM.write(i+20,phone3_byte[i]);
+    delay(10);
+  }
+    lcd.clear();
+    lcd.println("RESET SYSTEM");
+}
+  
+
+ 
+void romRead()
+{
+    //Serial.println("romRead");
+    lcd.clear();
+    for(int i=0;i<10;i++)
+    {
+    phone1_byte_rom[i]=EEPROM.read(i);
+    delay(10);
+    phone1_char_rom[i]=char(phone1_byte_rom[i]);
+    //Serial.write(phone1_char_rom[i]);
+    lcd.write(phone1_char_rom[i]);
+    }
+    delay(5000);
+    lcd.clear();
+    //Serial.write("\n");
+    for(int i=0;i<10;i++)
+    {
+    phone2_byte_rom[i]=EEPROM.read(i+10);
+    delay(10);
+    phone2_char_rom[i]=char(phone2_byte_rom[i]);
+    //Serial.write(phone2_char_rom[i]);
+    lcd.write(phone2_char_rom[i]);
+    }
+    delay(5000);
+    lcd.clear();
+    //Serial.write("\n");
+    for(int i=0;i<10;i++)
+    {
+    phone3_byte_rom[i]=EEPROM.read(i+20);
+    delay(10);
+    phone3_char_rom[i]=char(phone3_byte_rom[i]);
+    //Serial.write(phone3_char_rom[i]);
+    lcd.write(phone3_char_rom[i]);
+    }
+    delay(5000);
+    lcd.clear();
+    }
+
+ 
